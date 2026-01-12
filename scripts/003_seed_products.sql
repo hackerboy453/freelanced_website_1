@@ -1,0 +1,17 @@
+-- Seed sample products
+INSERT INTO public.products (title, description, price, category_id, images, stock, is_active) VALUES
+  ('Smartphone Pro Max', 'Latest flagship smartphone with advanced camera system, 5G connectivity, and all-day battery life.', 79999.00, (SELECT id FROM categories WHERE slug = 'electronics'), ARRAY['/placeholder.svg?height=400&width=400', '/placeholder.svg?height=400&width=400'], 50, true),
+  ('Wireless Earbuds Elite', 'Premium wireless earbuds with active noise cancellation and 24-hour battery life.', 12999.00, (SELECT id FROM categories WHERE slug = 'electronics'), ARRAY['/placeholder.svg?height=400&width=400'], 100, true),
+  ('Laptop Ultra', 'Powerful laptop with M3 chip, 16GB RAM, and stunning Retina display.', 129999.00, (SELECT id FROM categories WHERE slug = 'electronics'), ARRAY['/placeholder.svg?height=400&width=400'], 30, true),
+  ('Smart Watch Series 5', 'Advanced health tracking, GPS, and cellular connectivity.', 34999.00, (SELECT id FROM categories WHERE slug = 'electronics'), ARRAY['/placeholder.svg?height=400&width=400'], 75, true),
+  ('Designer Kurta Set', 'Premium cotton kurta with elegant embroidery, perfect for festivals.', 2499.00, (SELECT id FROM categories WHERE slug = 'fashion'), ARRAY['/placeholder.svg?height=400&width=400'], 200, true),
+  ('Running Shoes Pro', 'Lightweight running shoes with advanced cushioning technology.', 8999.00, (SELECT id FROM categories WHERE slug = 'fashion'), ARRAY['/placeholder.svg?height=400&width=400'], 150, true),
+  ('Casual Denim Jacket', 'Classic denim jacket with modern fit, perfect for all seasons.', 3499.00, (SELECT id FROM categories WHERE slug = 'fashion'), ARRAY['/placeholder.svg?height=400&width=400'], 80, true),
+  ('Automatic Coffee Maker', 'Brew perfect coffee every time with programmable settings.', 15999.00, (SELECT id FROM categories WHERE slug = 'home-kitchen'), ARRAY['/placeholder.svg?height=400&width=400'], 40, true),
+  ('Air Purifier Pro', 'HEPA filter air purifier for clean and fresh indoor air.', 24999.00, (SELECT id FROM categories WHERE slug = 'home-kitchen'), ARRAY['/placeholder.svg?height=400&width=400'], 60, true),
+  ('Non-Stick Cookware Set', 'Complete 12-piece cookware set with premium non-stick coating.', 6999.00, (SELECT id FROM categories WHERE slug = 'home-kitchen'), ARRAY['/placeholder.svg?height=400&width=400'], 90, true),
+  ('Bestseller Novel Collection', 'Collection of award-winning novels from top authors.', 1299.00, (SELECT id FROM categories WHERE slug = 'books'), ARRAY['/placeholder.svg?height=400&width=400'], 300, true),
+  ('Yoga Mat Premium', 'Extra thick yoga mat with non-slip surface and carrying strap.', 1999.00, (SELECT id FROM categories WHERE slug = 'sports'), ARRAY['/placeholder.svg?height=400&width=400'], 200, true),
+  ('Dumbbell Set', 'Adjustable dumbbell set for home workouts, 2.5kg to 25kg.', 8499.00, (SELECT id FROM categories WHERE slug = 'sports'), ARRAY['/placeholder.svg?height=400&width=400'], 50, true),
+  ('Skincare Essentials Kit', 'Complete skincare routine with cleanser, toner, and moisturizer.', 2999.00, (SELECT id FROM categories WHERE slug = 'beauty'), ARRAY['/placeholder.svg?height=400&width=400'], 120, true),
+  ('Premium Makeup Palette', 'Professional eyeshadow palette with 24 stunning shades.', 1799.00, (SELECT id FROM categories WHERE slug = 'beauty'), ARRAY['/placeholder.svg?height=400&width=400'], 180, true);
