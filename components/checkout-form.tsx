@@ -13,7 +13,7 @@ import { createClient } from "@/lib/supabase/client"
 import { toast } from "sonner"
 import type { CartItem, Product, Profile } from "@/lib/types"
 import { mutate } from "swr"
-import { COD_SHIPPING_FEE, ONLINE_SHIPPING_FEE, calculateTotal as calcTotal, calculateBulkDiscount, calculateDiscountedPrice } from "@/lib/utils/tax"
+import { COD_SHIPPING_FEE, calculateTotal as calcTotal, calculateBulkDiscount, calculateDiscountedPrice } from "@/lib/utils/tax"
 
 declare global {
   interface Window {
@@ -31,6 +31,9 @@ interface CheckoutFormProps {
   paymentMethod: string
   onPaymentMethodChange: (method: string) => void
 }
+
+// Define ONLINE_SHIPPING_FEE locally since it's not exported from tax utils
+const ONLINE_SHIPPING_FEE = 0 // Set to 0 or your desired value for online payments
 
 // Calculate shipping fee based on payment method
 const getShippingFee = (paymentMethod: string): number => {
