@@ -29,7 +29,7 @@ export function Footer() {
   return (
     <footer className="bg-secondary border-t">
       <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
           {/* Brand */}
           <div className="space-y-4">
             <Link href="/" className="flex items-center gap-2">
@@ -150,6 +150,21 @@ export function Footer() {
                 Sunday: Closed
               </p>
             </div>
+          </div>
+
+          {/* Delivery Charges */}
+          <div>
+            <h3 className="font-semibold mb-4">Delivery Charges</h3>
+            <ul className="space-y-2 text-sm text-muted-foreground">
+              <li>• Order value ₹200-500: ₹100</li>
+              <li>• Order value ₹500-1000: ₹200</li>
+              <li>• Order value ₹1000-2000: ₹250</li>
+              <li>• Order value ₹2000+: Free delivery</li>
+              <li>• Cash on Delivery: +₹80 additional</li>
+              <li className="pt-2 border-t border-border">
+                <span className="font-semibold">Minimum order: ₹200</span>
+              </li>
+            </ul>
           </div>
         </div>
 
