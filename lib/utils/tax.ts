@@ -13,8 +13,9 @@ export function calculateTotal(subtotal: number, tax: number, shipping: number =
   return subtotal + tax + shipping
 }
 
-export const COD_SHIPPING_FEE = 80 // ₹80 for Cash on Delivery
-export const ONLINE_SHIPPING_FEE = 0 // Free for online payment
+export const COD_SHIPPING_FEE = 80 // Base shipping fee
+export const SHIPPING_FEE = 80 // Shipping fee for any payment method
+export const FREE_SHIPPING_THRESHOLD = 2000 // Free shipping for orders over this amount
 
 export function formatPrice(price: number): string {
   return new Intl.NumberFormat("en-IN", {
