@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Checkbox } from "@/components/ui/checkbox"
-import { formatPrice, calculateSubtotal, calculateTax, calculateTotal, GST_RATE, calculateBulkDiscount, SHIPPING_FEE, FREE_SHIPPING_THRESHOLD } from "@/lib/utils/tax"
+import { formatPrice, calculateSubtotal, calculateTax, calculateTotal, GST_RATE, calculateBulkDiscount, calculateBaseShippingFee, COD_FEE, MINIMUM_ORDER_VALUE, FREE_SHIPPING_THRESHOLD } from "@/lib/utils/tax"
 import { createClient } from "@/lib/supabase/client"
 import { toast } from "sonner"
 import { mutate } from "swr"
@@ -208,7 +208,8 @@ export default function CartPage() {
   const subtotal = originalSubtotal - totalDiscount
   const tax = calculateTax(subtotal)
   const totalBeforeShipping = calculateTotal(subtotal, tax)
-  const shipping = totalBeforeShipping >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FEE
+  // Cart page shows base shipping only (COD fee will be added at checkout)
+  const shipping = calculateBaseShippingFee(subtotal)
   const total = totalBeforeShipping + shipping
 
   if (isLoading) {
@@ -411,12 +412,28 @@ export default function CartPage() {
                   <span className="text-muted-foreground">Shipping</span>
                   <div className="text-right">
                     {shipping === 0 ? (
-                      <span className="text-green-600">Free (orders over ₹{FREE_SHIPPING_THRESHOLD})</span>
+                      subtotal >= FREE_SHIPPING_THRESHOLD ? (
+                        <span className="text-green-600">Free (orders over ₹{FREE_SHIPPING_THRESHOLD})</span>
+                      ) : (
+                        <span className="text-destructive">Minimum order ₹{MINIMUM_ORDER_VALUE}</span>
+                      )
                     ) : (
                       <span>{formatPrice(shipping)}</span>
                     )}
                     <p className="text-xs text-muted-foreground">Standard shipping (COD or online)</p>
                   </div>
+                </div>
+                {/* Delivery Charges Information */}
+                <div className="mt-2 p-3 bg-muted/50 rounded-md">
+                  <p className="text-xs font-semibold mb-1">Delivery Charges:</p>
+                  <ul className="text-xs text-muted-foreground space-y-0.5">
+                    <li>• Order value ₹200-500: ₹100</li>
+                    <li>• Order value ₹500-1000: ₹200</li>
+                    <li>• Order value ₹1000-2000: ₹250</li>
+                    <li>• Order value ₹2000+: Free delivery</li>
+                    <li>• Cash on Delivery: +₹{COD_FEE} additional</li>
+                    <li>• Minimum order value: ₹{MINIMUM_ORDER_VALUE}</li>
+                  </ul>
                 </div>
                 <Separator />
                 <div className="flex justify-between font-semibold text-lg">
@@ -434,10 +451,10 @@ export default function CartPage() {
                 <Button
                   className="w-full"
                   size="lg"
-                  disabled={selectedCartItems.length === 0 || total < 200}
+                  disabled={selectedCartItems.length === 0 || subtotal < MINIMUM_ORDER_VALUE}
                   onClick={() => {
-                    if (total < 200) {
-                      toast.error("Minimum order value is ₹200. Please add more items to proceed.")
+                    if (subtotal < MINIMUM_ORDER_VALUE) {
+                      toast.error(`Minimum order value is ₹${MINIMUM_ORDER_VALUE}. Please add more items to proceed.`)
                       return
                     }
                     // Store selected items in sessionStorage
@@ -449,9 +466,9 @@ export default function CartPage() {
                   Proceed to Checkout ({selectedCartItems.length})
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
-                {total < 200 && selectedCartItems.length > 0 && (
+                {subtotal < MINIMUM_ORDER_VALUE && selectedCartItems.length > 0 && (
                   <p className="text-xs text-destructive mt-2 text-center w-full">
-                    Minimum order value is ₹200. Add items worth ₹{formatPrice(200 - total)} more to proceed.
+                    Minimum order value is ₹{MINIMUM_ORDER_VALUE}. Add items worth ₹{formatPrice(MINIMUM_ORDER_VALUE - subtotal)} more to proceed.
                   </p>
                 )}
               </CardFooter>
