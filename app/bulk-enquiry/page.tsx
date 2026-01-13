@@ -13,7 +13,7 @@ export default function BulkEnquiryPage() {
             Bulk Inquiry / Wholesale Orders
           </CardTitle>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            At VJ INTERNATIONAL (Electrotech Mart), we support bulk purchase requirements for:
+            Electrotech Mart, we support bulk purchase requirements for:
           </p>
         </CardHeader>
 
