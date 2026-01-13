@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -13,7 +12,22 @@ import { createClient } from "@/lib/supabase/client"
 import { toast } from "sonner"
 import type { CartItem, Product, Profile } from "@/lib/types"
 import { mutate } from "swr"
-import { COD_SHIPPING_FEE, calculateTotal as calcTotal, calculateBulkDiscount, calculateDiscountedPrice } from "@/lib/utils/tax"
+import { calculateShippingFee } from "@/lib/utils/tax"
+
+// ✅ FIXED: Define calculation functions locally
+const calculateTotal = (subtotal: number, tax: number, shipping: number): number => {
+  return Math.round(subtotal + tax + shipping)
+}
+
+const calculateBulkDiscount = (price: number, quantity: number, discount21_50 = 10, discount51Plus = 20): number => {
+  if (quantity >= 51) return (price * discount51Plus / 100) * quantity
+  if (quantity >= 21) return (price * discount21_50 / 100) * quantity
+  return 0
+}
+
+const calculateDiscountedPrice = (price: number, discount: number): number => {
+  return price - (price * discount / 100)
+}
 
 declare global {
   interface Window {
@@ -32,47 +46,29 @@ interface CheckoutFormProps {
   onPaymentMethodChange: (method: string) => void
 }
 
-// Define ONLINE_SHIPPING_FEE locally since it's not exported from tax utils
-const ONLINE_SHIPPING_FEE = 0 // Set to 0 or your desired value for online payments
-
-// Calculate shipping fee based on payment method
-const getShippingFee = (paymentMethod: string): number => {
-  return paymentMethod === "cod" ? COD_SHIPPING_FEE : ONLINE_SHIPPING_FEE
+// Calculate shipping fee based on order value (subtotal) and payment method
+const getShippingFee = (subtotal: number, paymentMethod: string): number => {
+  return calculateShippingFee(subtotal, paymentMethod)
 }
 
 const indianStates = [
-  "Andhra Pradesh",
-  "Arunachal Pradesh",
-  "Assam",
-  "Bihar",
-  "Chhattisgarh",
-  "Goa",
-  "Gujarat",
-  "Haryana",
-  "Himachal Pradesh",
-  "Jharkhand",
-  "Karnataka",
-  "Kerala",
-  "Madhya Pradesh",
-  "Maharashtra",
-  "Manipur",
-  "Meghalaya",
-  "Mizoram",
-  "Nagaland",
-  "Odisha",
-  "Punjab",
-  "Rajasthan",
-  "Sikkim",
-  "Tamil Nadu",
-  "Telangana",
-  "Tripura",
-  "Uttar Pradesh",
-  "Uttarakhand",
-  "West Bengal",
-  "Delhi",
+  "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat",
+  "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka", "Kerala", "Madhya Pradesh",
+  "Maharashtra", "Manipur", "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab",
+  "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh",
+  "Uttarakhand", "West Bengal", "Delhi"
 ]
 
-export function CheckoutForm({ userId, profile, cartItems, subtotal, tax, total, paymentMethod, onPaymentMethodChange }: CheckoutFormProps) {
+export function CheckoutForm({ 
+  userId, 
+  profile, 
+  cartItems, 
+  subtotal, 
+  tax, 
+  total, 
+  paymentMethod, 
+  onPaymentMethodChange 
+}: CheckoutFormProps) {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [isRazorpayLoaded, setIsRazorpayLoaded] = useState(false)
@@ -96,7 +92,9 @@ export function CheckoutForm({ userId, profile, cartItems, subtotal, tax, total,
     document.body.appendChild(script)
 
     return () => {
-      document.body.removeChild(script)
+      if (document.body.contains(script)) {
+        document.body.removeChild(script)
+      }
     }
   }, [])
 
@@ -117,20 +115,18 @@ export function CheckoutForm({ userId, profile, cartItems, subtotal, tax, total,
         return {
           product_id: item.product.id,
           product_title: item.product.title,
-          product_price: discountedPrice / item.quantity, // Store per-unit discounted price
+          product_price: discountedPrice / item.quantity,
           quantity: item.quantity,
         }
       })
 
-      // Calculate shipping and final total based on selected payment method
-      const shippingFee = getShippingFee(paymentMethod)
-      const finalTotal = calcTotal(subtotal, tax, shippingFee)
+      // Calculate shipping and final total (shipping based on order value + COD fee)
+      const shippingFee = getShippingFee(subtotal, paymentMethod)
+      const finalTotal = calculateTotal(subtotal, tax, shippingFee)
 
       const response = await fetch("/api/orders/create", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           cartItems: cartItemsWithDiscounts,
           subtotal,
@@ -164,7 +160,6 @@ export function CheckoutForm({ userId, profile, cartItems, subtotal, tax, total,
     if (!isRazorpayLoaded || !window.Razorpay) {
       toast.error("Payment gateway not loaded. Please refresh the page.")
       setIsLoading(false)
-      // Cancel order if payment gateway fails
       await cancelOrder(order.id)
       return
     }
@@ -172,23 +167,18 @@ export function CheckoutForm({ userId, profile, cartItems, subtotal, tax, total,
     const razorpayKeyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID
     if (!razorpayKeyId || razorpayKeyId === "your_razorpay_key_id" || razorpayKeyId.trim() === "") {
       toast.error("Razorpay is not configured. Please contact support.")
-      console.error("Razorpay key ID is missing or invalid")
       setIsLoading(false)
-      // Cancel order if Razorpay is not configured
       await cancelOrder(order.id)
       return
     }
 
     try {
-      const shippingFee = getShippingFee("razorpay")
-      const finalTotal = calcTotal(subtotal, tax, shippingFee)
+      const shippingFee = getShippingFee(subtotal, "razorpay")
+      const finalTotal = calculateTotal(subtotal, tax, shippingFee)
       
-      // Create Razorpay order
       const response = await fetch("/api/razorpay/create-order", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           amount: finalTotal,
           currency: "INR",
@@ -199,31 +189,24 @@ export function CheckoutForm({ userId, profile, cartItems, subtotal, tax, total,
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: "Unknown error occurred" }))
-        // Mark order as failed if Razorpay order creation fails
         await failOrder(order.id)
-        const errorMessage = errorData.error || `Failed to create payment order (${response.status})`
-        console.error("Razorpay order creation failed:", errorData)
-        throw new Error(errorMessage)
+        throw new Error(errorData.error || `Failed to create payment order (${response.status})`)
       }
 
       const razorpayOrder = await response.json()
 
-      // Initialize Razorpay checkout
       const options = {
         key: razorpayKeyId,
         amount: razorpayOrder.amount,
         currency: razorpayOrder.currency,
-        name: "E-Commerce Store",
+        name: "Electrotechmart",
         description: `Order ${order.order_number}`,
         order_id: razorpayOrder.id,
         handler: async function (response: any) {
           try {
-            // Verify payment
             const verifyResponse = await fetch("/api/razorpay/verify-payment", {
               method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
+              headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 razorpay_order_id: response.razorpay_order_id,
                 razorpay_payment_id: response.razorpay_payment_id,
@@ -234,7 +217,6 @@ export function CheckoutForm({ userId, profile, cartItems, subtotal, tax, total,
 
             if (!verifyResponse.ok) {
               const error = await verifyResponse.json()
-              // Mark order as failed if payment verification fails
               await failOrder(order.id)
               throw new Error(error.error || "Payment verification failed")
             }
@@ -243,11 +225,11 @@ export function CheckoutForm({ userId, profile, cartItems, subtotal, tax, total,
             const itemIds = cartItems.map((item) => item.id)
             if (itemIds.length > 0) {
               const supabase = createClient()
-              const { error: cartError } = await supabase.from("cart_items").delete().in("id", itemIds)
-              if (cartError) {
-                console.error("Error clearing cart:", cartError)
-                // Don't throw here, payment is verified and order is created
-              }
+              const { error: cartError } = await supabase
+                .from("cart_items")
+                .delete()
+                .in("id", itemIds)
+              if (cartError) console.error("Error clearing cart:", cartError)
             }
 
             toast.success("Payment successful! Order placed.")
@@ -261,12 +243,10 @@ export function CheckoutForm({ userId, profile, cartItems, subtotal, tax, total,
         },
         prefill: {
           name: fullName,
-          email: profile?.full_name || "",
+          email: profile?.email || "",
           contact: phone,
         },
-        theme: {
-          color: "#2563eb",
-        },
+        theme: { color: "#2563eb" },
         modal: {
           ondismiss: function () {
             setIsLoading(false)
@@ -278,7 +258,6 @@ export function CheckoutForm({ userId, profile, cartItems, subtotal, tax, total,
       const razorpay = new window.Razorpay(options)
       razorpay.on("payment.failed", async function (response: any) {
         toast.error(`Payment failed: ${response.error.description}`)
-        // Mark order as failed if payment fails
         await failOrder(order.id)
         setIsLoading(false)
       })
@@ -286,10 +265,7 @@ export function CheckoutForm({ userId, profile, cartItems, subtotal, tax, total,
     } catch (error) {
       console.error("Razorpay payment error:", error)
       toast.error(error instanceof Error ? error.message : "Failed to process payment")
-      // Mark order as failed on error
-      if (order?.id) {
-        await failOrder(order.id)
-      }
+      if (order?.id) await failOrder(order.id)
       setIsLoading(false)
     }
   }
@@ -297,11 +273,7 @@ export function CheckoutForm({ userId, profile, cartItems, subtotal, tax, total,
   const cancelOrder = async (orderId: string) => {
     try {
       const supabase = createClient()
-      await supabase
-        .from("orders")
-        .update({ status: "cancelled" })
-        .eq("id", orderId)
-      console.log("Order cancelled:", orderId)
+      await supabase.from("orders").update({ status: "cancelled" }).eq("id", orderId)
     } catch (error) {
       console.error("Error cancelling order:", error)
     }
@@ -310,11 +282,7 @@ export function CheckoutForm({ userId, profile, cartItems, subtotal, tax, total,
   const failOrder = async (orderId: string) => {
     try {
       const supabase = createClient()
-      await supabase
-        .from("orders")
-        .update({ status: "failed" })
-        .eq("id", orderId)
-      console.log("Order marked as failed:", orderId)
+      await supabase.from("orders").update({ status: "failed" }).eq("id", orderId)
     } catch (error) {
       console.error("Error marking order as failed:", error)
     }
@@ -324,14 +292,12 @@ export function CheckoutForm({ userId, profile, cartItems, subtotal, tax, total,
     e.preventDefault()
     setIsLoading(true)
 
-    // Validate pincode
     if (!/^\d{6}$/.test(pincode)) {
       toast.error("Please enter a valid 6-digit pincode")
       setIsLoading(false)
       return
     }
 
-    // Validate phone
     if (!/^\d{10}$/.test(phone)) {
       toast.error("Please enter a valid 10-digit phone number")
       setIsLoading(false)
@@ -339,24 +305,20 @@ export function CheckoutForm({ userId, profile, cartItems, subtotal, tax, total,
     }
 
     try {
-      // For Razorpay, create order with pending status first
-      // For COD, create order directly
       const order = await createOrderInDatabase()
 
-      // Handle payment based on payment method
       if (paymentMethod === "razorpay") {
         await handleRazorpayPayment(order)
-        return // Don't clear loading state here, Razorpay will handle it
+        return
       } else {
-        // For COD, clear only the items that were checked out
         const itemIds = cartItems.map((item) => item.id)
         if (itemIds.length > 0) {
           const supabase = createClient()
-          const { error: cartError } = await supabase.from("cart_items").delete().in("id", itemIds)
-          if (cartError) {
-            console.error("Error clearing cart:", cartError)
-            // Don't throw here, order is already created
-          }
+          const { error: cartError } = await supabase
+            .from("cart_items")
+            .delete()
+            .in("id", itemIds)
+          if (cartError) console.error("Error clearing cart:", cartError)
         }
 
         toast.success("Order placed successfully!")
@@ -365,13 +327,9 @@ export function CheckoutForm({ userId, profile, cartItems, subtotal, tax, total,
       }
     } catch (error) {
       console.error("Order placement error:", error)
-      const errorMessage = error instanceof Error ? error.message : "Failed to place order"
-      toast.error(errorMessage)
-      setIsLoading(false)
+      toast.error(error instanceof Error ? error.message : "Failed to place order")
     } finally {
-      if (paymentMethod !== "razorpay") {
-        setIsLoading(false)
-      }
+      if (paymentMethod !== "razorpay") setIsLoading(false)
     }
   }
 
@@ -420,7 +378,13 @@ export function CheckoutForm({ userId, profile, cartItems, subtotal, tax, total,
           <div className="grid md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="city">City *</Label>
-              <Input id="city" value={city} onChange={(e) => setCity(e.target.value)} placeholder="City" required />
+              <Input 
+                id="city" 
+                value={city} 
+                onChange={(e) => setCity(e.target.value)} 
+                placeholder="City" 
+                required 
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="state">State *</Label>
@@ -429,13 +393,11 @@ export function CheckoutForm({ userId, profile, cartItems, subtotal, tax, total,
                 value={state}
                 onChange={(e) => setState(e.target.value)}
                 required
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <option value="">Select State</option>
                 {indianStates.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
+                  <option key={s} value={s}>{s}</option>
                 ))}
               </select>
             </div>
@@ -470,7 +432,7 @@ export function CheckoutForm({ userId, profile, cartItems, subtotal, tax, total,
               <RadioGroupItem value="razorpay" id="razorpay" />
               <Label htmlFor="razorpay" className="flex-1 cursor-pointer">
                 <span className="font-medium">Razorpay (UPI, Cards, Wallets)</span>
-                <p className="text-sm text-muted-foreground">Secure payment via Razorpay - UPI, Cards, Net Banking & Wallets</p>
+                <p className="text-sm text-muted-foreground">Secure payment via Razorpay</p>
               </Label>
             </div>
           </RadioGroup>
