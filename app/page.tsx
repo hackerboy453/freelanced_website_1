@@ -73,11 +73,10 @@ export default async function HomePage() {
                 Welcome to Electrotechmart
               </Badge>
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight text-balance">
-                Shop the Best Products at <span className="text-primary">Unbeatable Prices</span>
+                Delivering Advanced Electronics <span className="text-primary">With</span>
               </h1>
               <p className="text-lg text-muted-foreground max-w-lg leading-relaxed">
-                Discover thousands of quality products for electronics. Fast delivery across India with
-                secure payments.
+                 Uncompromised Quality and Trust.
               </p>
               <div className="flex flex-wrap gap-4">
                 <Button size="lg" asChild>
