@@ -10,7 +10,7 @@ export default function SignUpSuccessPage() {
         <div className="flex flex-col items-center mb-8">
           <Link href="/" className="flex items-center gap-2 mb-4">
             <Store className="h-10 w-10 text-primary" />
-            <span className="text-2xl font-bold">ShopKart</span>
+            <span className="text-2xl font-bold">Electrotechmart</span>
           </Link>
         </div>
 
