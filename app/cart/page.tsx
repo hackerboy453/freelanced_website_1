@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Checkbox } from "@/components/ui/checkbox"
-import { formatPrice, calculateSubtotal, calculateTax, calculateTotal, GST_RATE, calculateBulkDiscount } from "@/lib/utils/tax"
+import { formatPrice, calculateSubtotal, calculateTax, calculateTotal, GST_RATE, calculateBulkDiscount, SHIPPING_FEE, FREE_SHIPPING_THRESHOLD } from "@/lib/utils/tax"
 import { createClient } from "@/lib/supabase/client"
 import { toast } from "sonner"
 import { mutate } from "swr"
@@ -207,7 +207,9 @@ export default function CartPage() {
   }, 0)
   const subtotal = originalSubtotal - totalDiscount
   const tax = calculateTax(subtotal)
-  const total = calculateTotal(subtotal, tax)
+  const totalBeforeShipping = calculateTotal(subtotal, tax)
+  const shipping = totalBeforeShipping >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FEE
+  const total = totalBeforeShipping + shipping
 
   if (isLoading) {
     return (
@@ -408,8 +410,12 @@ export default function CartPage() {
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Shipping</span>
                   <div className="text-right">
-                    <span className="text-green-600">Free (Online Payment)</span>
-                    <p className="text-xs text-muted-foreground">₹80 (Cash on Delivery)</p>
+                    {shipping === 0 ? (
+                      <span className="text-green-600">Free (orders over ₹{FREE_SHIPPING_THRESHOLD})</span>
+                    ) : (
+                      <span>{formatPrice(shipping)}</span>
+                    )}
+                    <p className="text-xs text-muted-foreground">Standard shipping (COD or online)</p>
                   </div>
                 </div>
                 <Separator />
