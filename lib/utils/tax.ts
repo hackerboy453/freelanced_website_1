@@ -13,9 +13,40 @@ export function calculateTotal(subtotal: number, tax: number, shipping: number =
   return subtotal + tax + shipping
 }
 
-export const COD_SHIPPING_FEE = 80 // Base shipping fee
-export const SHIPPING_FEE = 80 // Shipping fee for any payment method
+export const MINIMUM_ORDER_VALUE = 200 // Minimum order value required
 export const FREE_SHIPPING_THRESHOLD = 2000 // Free shipping for orders over this amount
+export const COD_FEE = 80 // Additional fee for Cash on Delivery orders
+
+// Calculate base shipping fee based on order value (after discounts, before tax)
+// 200-500: 100rs
+// 500-1000: 200rs
+// 1000-2000: 250rs
+// 2000+: free delivery
+export function calculateBaseShippingFee(orderValue: number): number {
+  if (orderValue >= FREE_SHIPPING_THRESHOLD) {
+    return 0 // Free delivery
+  } else if (orderValue >= 1000) {
+    return 250
+  } else if (orderValue >= 500) {
+    return 200
+  } else if (orderValue >= MINIMUM_ORDER_VALUE) {
+    return 100
+  } else {
+    return 0 // Below minimum order value
+  }
+}
+
+// Calculate total shipping fee including COD fee if applicable
+// paymentMethod: "cod" or "razorpay" (or any other online payment method)
+export function calculateShippingFee(orderValue: number, paymentMethod?: string): number {
+  const baseShipping = calculateBaseShippingFee(orderValue)
+  const codFee = paymentMethod === "cod" ? COD_FEE : 0
+  return baseShipping + codFee
+}
+
+// Legacy constants for backward compatibility (deprecated)
+export const COD_SHIPPING_FEE = 80 // Deprecated - use calculateShippingFee instead
+export const SHIPPING_FEE = 80 // Deprecated - use calculateShippingFee instead
 
 export function formatPrice(price: number): string {
   return new Intl.NumberFormat("en-IN", {
