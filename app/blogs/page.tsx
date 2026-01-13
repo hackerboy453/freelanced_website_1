@@ -23,7 +23,7 @@ export default async function BlogsPage() {
       <div className="text-center mb-12">
         <h1 className="text-3xl md:text-4xl font-bold mb-4">Blog & Updates</h1>
         <p className="text-muted-foreground max-w-2xl mx-auto">
-          Stay updated with the latest trends, tips, and news from ShopKart.
+          Stay updated with the latest trends, tips, and news from Electrotechmart.
         </p>
       </div>
 
