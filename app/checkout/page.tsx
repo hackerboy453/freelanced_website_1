@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { CheckoutForm } from "@/components/checkout-form"
-import { formatPrice, calculateSubtotal, calculateTax, calculateTotal, GST_RATE, COD_SHIPPING_FEE, ONLINE_SHIPPING_FEE, calculateBulkDiscount } from "@/lib/utils/tax"
+import { formatPrice, calculateSubtotal, calculateTax, calculateTotal, GST_RATE, calculateBulkDiscount, SHIPPING_FEE, FREE_SHIPPING_THRESHOLD } from "@/lib/utils/tax"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Loader2 } from "lucide-react"
@@ -102,7 +102,9 @@ export default function CheckoutPage() {
   }, 0)
   const subtotal = originalSubtotal - totalDiscount
   const tax = calculateTax(subtotal)
-  const total = calculateTotal(subtotal, tax)
+  const totalBeforeShipping = calculateTotal(subtotal, tax)
+  const shipping = totalBeforeShipping >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FEE
+  const total = totalBeforeShipping + shipping
 
   if (!userId) {
     return null
@@ -207,8 +209,12 @@ export default function CheckoutPage() {
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Shipping</span>
                   <div className="text-right">
-                    <span className="text-green-600">Free (Online Payment)</span>
-                    <p className="text-xs text-muted-foreground">₹{COD_SHIPPING_FEE} (Cash on Delivery)</p>
+                    {shipping === 0 ? (
+                      <span className="text-green-600">Free (orders over ₹{FREE_SHIPPING_THRESHOLD})</span>
+                    ) : (
+                      <span>{formatPrice(shipping)}</span>
+                    )}
+                    <p className="text-xs text-muted-foreground">Standard shipping (COD or online)</p>
                   </div>
                 </div>
               </div>
@@ -217,7 +223,7 @@ export default function CheckoutPage() {
 
               <div className="flex justify-between font-semibold text-lg">
                 <span>Final Payable ({paymentMethod === "cod" ? "Cash on Delivery" : "Online Payment"})</span>
-                <span>{formatPrice(paymentMethod === "cod" ? total + COD_SHIPPING_FEE : total)}</span>
+                <span>{formatPrice(total)}</span>
               </div>
               <p className="text-xs text-muted-foreground">Inclusive of all taxes</p>
             </CardContent>
