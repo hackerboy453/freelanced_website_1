@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { CheckoutForm } from "@/components/checkout-form"
-import { formatPrice, calculateSubtotal, calculateTax, calculateTotal, GST_RATE, calculateBulkDiscount, SHIPPING_FEE, FREE_SHIPPING_THRESHOLD } from "@/lib/utils/tax"
+import { formatPrice, calculateSubtotal, calculateTax, calculateTotal, GST_RATE, calculateBulkDiscount, calculateShippingFee, calculateBaseShippingFee, COD_FEE, MINIMUM_ORDER_VALUE, FREE_SHIPPING_THRESHOLD } from "@/lib/utils/tax"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Loader2 } from "lucide-react"
@@ -103,7 +103,9 @@ export default function CheckoutPage() {
   const subtotal = originalSubtotal - totalDiscount
   const tax = calculateTax(subtotal)
   const totalBeforeShipping = calculateTotal(subtotal, tax)
-  const shipping = totalBeforeShipping >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FEE
+  const shipping = calculateShippingFee(subtotal, paymentMethod)
+  const baseShipping = calculateBaseShippingFee(subtotal)
+  const codFee = paymentMethod === "cod" ? COD_FEE : 0
   const total = totalBeforeShipping + shipping
 
   if (!userId) {
@@ -209,13 +211,38 @@ export default function CheckoutPage() {
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Shipping</span>
                   <div className="text-right">
-                    {shipping === 0 ? (
-                      <span className="text-green-600">Free (orders over ₹{FREE_SHIPPING_THRESHOLD})</span>
+                    {baseShipping === 0 ? (
+                      subtotal >= FREE_SHIPPING_THRESHOLD ? (
+                        <span className="text-green-600">Free (orders over ₹{FREE_SHIPPING_THRESHOLD})</span>
+                      ) : (
+                        <span className="text-destructive">Minimum order ₹{MINIMUM_ORDER_VALUE}</span>
+                      )
                     ) : (
-                      <span>{formatPrice(shipping)}</span>
+                      <span>{formatPrice(baseShipping)}</span>
                     )}
-                    <p className="text-xs text-muted-foreground">Standard shipping (COD or online)</p>
+                    <p className="text-xs text-muted-foreground">Standard shipping</p>
                   </div>
+                </div>
+                {codFee > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Cash on Delivery Fee</span>
+                    <div className="text-right">
+                      <span>{formatPrice(codFee)}</span>
+                      <p className="text-xs text-muted-foreground">Additional COD charge</p>
+                    </div>
+                  </div>
+                )}
+                {/* Delivery Charges Information */}
+                <div className="mt-2 p-3 bg-muted/50 rounded-md">
+                  <p className="text-xs font-semibold mb-1">Delivery Charges:</p>
+                  <ul className="text-xs text-muted-foreground space-y-0.5">
+                    <li>• Order value ₹200-500: ₹100</li>
+                    <li>• Order value ₹500-1000: ₹200</li>
+                    <li>• Order value ₹1000-2000: ₹250</li>
+                    <li>• Order value ₹2000+: Free delivery</li>
+                    <li>• Cash on Delivery: +₹{COD_FEE} additional</li>
+                    <li>• Minimum order value: ₹{MINIMUM_ORDER_VALUE}</li>
+                  </ul>
                 </div>
               </div>
 
