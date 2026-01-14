@@ -16,9 +16,12 @@ interface PricingTiersProps {
   basePrice: number
   discount21_50?: number | null
   discount51Plus?: number | null
+  onTierClick?: (quantity: number) => void
+  currentQuantity?: number
+  maxStock?: number
 }
 
-export function PricingTiers({ basePrice, discount21_50, discount51Plus }: PricingTiersProps) {
+export function PricingTiers({ basePrice, discount21_50, discount51Plus, onTierClick, currentQuantity, maxStock }: PricingTiersProps) {
   // Don't show if base price is invalid
   if (!basePrice || basePrice <= 0) {
     return null
@@ -66,10 +69,31 @@ export function PricingTiers({ basePrice, discount21_50, discount51Plus }: Prici
             ? (basePrice * tier.minQuantity) - totalPrice
             : 0
 
+          const isClickable = onTierClick && tier.minQuantity <= (maxStock ?? Infinity)
+          const isSelected = currentQuantity !== undefined && 
+            (tier.maxQuantity 
+              ? (currentQuantity >= tier.minQuantity && currentQuantity <= tier.maxQuantity)
+              : currentQuantity >= tier.minQuantity)
+
           return (
             <div
               key={index}
-              className="flex items-center justify-between p-3 rounded-lg border bg-muted/50 hover:bg-muted transition-colors"
+              onClick={() => {
+                if (isClickable && tier.minQuantity <= (maxStock ?? Infinity)) {
+                  onTierClick(tier.minQuantity)
+                }
+              }}
+              className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
+                isClickable 
+                  ? "cursor-pointer bg-muted/50 hover:bg-muted hover:border-primary active:scale-[0.98]" 
+                  : "bg-muted/50"
+              } ${
+                isSelected ? "border-primary bg-primary/5 ring-2 ring-primary/20" : ""
+              } ${
+                !isClickable && tier.minQuantity > (maxStock ?? 0)
+                  ? "opacity-50 cursor-not-allowed" 
+                  : ""
+              }`}
             >
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
