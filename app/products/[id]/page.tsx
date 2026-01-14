@@ -1,14 +1,13 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
-import { ChevronRight, Star, Truck, Shield, RotateCcw } from "lucide-react"
+import { ChevronRight, Star, Truck, Shield, RotateCcw, CreditCard } from "lucide-react"
 import { createClient } from "@/lib/supabase/server"
 import { formatPrice } from "@/lib/utils/tax"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { ProductCard } from "@/components/product-card"
-import { AddToCartButton } from "@/components/add-to-cart-button"
 import { ProductImageGallery } from "@/components/product-image-gallery"
-import { PricingTiers } from "@/components/pricing-tiers"
+import { ProductQuantityManager } from "@/components/product-quantity-manager"
 import type { Product } from "@/lib/types"
 
 interface ProductPageProps {
@@ -171,16 +170,36 @@ export default async function ProductPage({ params }: ProductPageProps) {
             )}
           </div>
 
-          <AddToCartButton product={product} />
+          <ProductQuantityManager product={product} />
 
           <Separator />
 
-          {/* Pricing Tiers */}
-          <PricingTiers
-            basePrice={product.price}
-            discount21_50={product.discount_21_50 ?? undefined}
-            discount51Plus={product.discount_51_plus ?? undefined}
-          />
+          <Separator />
+
+          {/* Trust Badges */}
+          <div className="grid sm:grid-cols-3 gap-3">
+            <div className="flex items-center gap-3 rounded-md border bg-muted/50 px-3 py-3">
+              <CreditCard className="h-5 w-5 text-primary" />
+              <div>
+                <p className="font-medium text-sm">COD Available</p>
+                <p className="text-xs text-muted-foreground">Cash on delivery supported</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 rounded-md border bg-muted/50 px-3 py-3">
+              <Truck className="h-5 w-5 text-primary" />
+              <div>
+                <p className="font-medium text-sm">Free Shipping</p>
+                <p className="text-xs text-muted-foreground">On orders above ₹2000</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 rounded-md border bg-muted/50 px-3 py-3">
+              <Shield className="h-5 w-5 text-primary" />
+              <div>
+                <p className="font-medium text-sm">GST Input Credit</p>
+                <p className="text-xs text-muted-foreground">Available on all purchases</p>
+              </div>
+            </div>
+          </div>
 
           <Separator />
 
