@@ -12,18 +12,37 @@ import type { Product } from "@/lib/types"
 
 interface AddToCartButtonProps {
   product: Product
+  quantity?: number
+  onQuantityChange?: (quantity: number) => void
 }
 
-export function AddToCartButton({ product }: AddToCartButtonProps) {
-  const [quantity, setQuantity] = useState(1)
+export function AddToCartButton({ product, quantity: externalQuantity, onQuantityChange }: AddToCartButtonProps) {
+  const [internalQuantity, setInternalQuantity] = useState(1)
   const [inputValue, setInputValue] = useState("1")
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
+
+  // Use external quantity if provided, otherwise use internal state
+  const quantity = externalQuantity !== undefined ? externalQuantity : internalQuantity
+  const setQuantity = (qty: number) => {
+    if (onQuantityChange) {
+      onQuantityChange(qty)
+    } else {
+      setInternalQuantity(qty)
+    }
+  }
 
   // Sync input value with quantity
   useEffect(() => {
     setInputValue(quantity.toString())
   }, [quantity])
+
+  // Sync internal state with external quantity changes
+  useEffect(() => {
+    if (externalQuantity !== undefined) {
+      setInternalQuantity(externalQuantity)
+    }
+  }, [externalQuantity])
 
   const handleQuantityChange = (value: string) => {
     // Allow empty input while typing
